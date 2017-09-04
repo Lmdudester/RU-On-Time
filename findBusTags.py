@@ -1,7 +1,5 @@
 import json, requests
 
-nbBusses = "A B C EE F H LX REX L REX B Weekend 1 Weekend 2"
-
 #Request Agency Listing
 agencyResp = requests.get("http://webservices.nextbus.com/service/publicJSONFeed?command=agencyList")
 agencyResp.raise_for_status()

@@ -1,24 +1,43 @@
 import json, requests
 
-#Returns a list of dictionaries where each dictionary contains a bus route's tag and title
-def getBusRteDict():
-    #Request Agency Listing
-    agencyResp = requests.get("http://webservices.nextbus.com/service/publicJSONFeed?command=agencyList")
-    agencyResp.raise_for_status()
-    agencyList = json.loads(agencyResp.text)
+class NBBusses:
+    agency = ""
+    busList = []
 
-    #Obtain tag for Rutgers
-    for i in agencyList["agency"]:
-        if "Rutgers University" == i["title"]:
-                #Get Route List
-                routeResp = requests.get("http://webservices.nextbus.com/service/publicJSONFeed?command=routeList&a=" + i["tag"])
-                routeResp.raise_for_status()
-                busDict = json.loads(routeResp.text)
+    #Request the agency string, then obtain the bus list
+    def __init__(self):
+        #Request Agency Listing
+        agencyResp = requests.get("http://webservices.nextbus.com/service/publicJSONFeed?command=agencyList")
+        agencyResp.raise_for_status()
+        agencyList = json.loads(agencyResp.text)
 
-                #Returned value has a list of all bus routes and their tags inside
-                return busDict["route"]
+        #Obtain tag for Rutgers
+        for i in agencyList["agency"]:
+            if "Rutgers University" == i["title"]:
+                    self.agency = i["tag"]
 
-    print("Rutgers University Agency Not Found...")
+                    #Get Route List
+                    routeResp = requests.get("http://webservices.nextbus.com/service/publicJSONFeed?command=routeList&a=" + i["tag"])
+                    routeResp.raise_for_status()
+                    self.busList = json.loads(routeResp.text)["route"]
+                    return
 
-for i in getBusRteDict():
+        print("Rutgers University Agency Not Found...")
+
+    #Given a route's Tag, return the list of stops
+    def getStopList(self, routeTag):
+        stopResp = requests.get("http://webservices.nextbus.com/service/publicJSONFeed?command=routeConfig&a=" + self.agency + "&r=" + routeTag)
+        stopResp.raise_for_status()
+        stopList = json.loads(stopResp.text)
+
+        return stopList["route"]["stop"]
+
+tempBusses = NBBusses()
+
+#Print bus Routes
+for i in tempBusses.busList:
+    print(i)
+
+#Print stops for the "A" bus
+for i in tempBusses.getStopList(tempBusses.busList[5]["tag"]):
     print(i)

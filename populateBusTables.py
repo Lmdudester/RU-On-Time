@@ -14,13 +14,14 @@ def makeTables(conn):
                         );''')
 
         conn.execute('''CREATE TABLE Requests (
-                        id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                        name        TEXT                                  NOT NULL,
-                        email       TEXT                                  NOT NULL,
-                        departTime  DATE                                  NOT NULL,
-                        timeBuffer  INTEGER                               NOT NULL,
-                        stopTag     TEXT                                  NOT NULL,
-                        busTag      TEXT                                  NOT NULL,
+                        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name         TEXT                                  NOT NULL,
+                        email        TEXT                                  NOT NULL,
+                        departHour   INTEGER                               NOT NULL,
+                        departMinute INTEGER                               NOT NULL,
+                        timeBuffer   INTEGER                               NOT NULL,
+                        stopTag      TEXT                                  NOT NULL,
+                        busTag       TEXT                                  NOT NULL,
                         FOREIGN KEY(stopTag) REFERENCES StopsBusses(stopTag),
                         FOREIGN KEY(busTag) REFERENCES StopsBusses(busTag)
                         );''')

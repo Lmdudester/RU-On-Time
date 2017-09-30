@@ -1,12 +1,29 @@
 import sqlite3, json, requests, datetime, smtplib, time
 
+# class TimeKeeper
+#   Object: TimeKeeper - Represents a single 24-hour time
+# Attributes:
+#   hour - An integer representing the hour
+#   minute - An integer representing the minute
 class TimeKeeper():
 
+    # **__init()__**
+    # Creates a TimeKeeper object
+    # Args:
+    #   hour - An integer representing the hour
+    #   minute - An integer representing the minute
+    # Return:
+    #   N/A
     def __init__(self, hour, minute):
         self.hour = hour
         self.minute = minute
 
-    #Adds a number of minutes to a TimeKeeper object
+    # **addMins()**
+    # Adds a number of minutes to a TimeKeeper object
+    # Args:
+    #   mins - An integer representing the minutes to be added
+    # Return:
+    #   N/A
     def addMins(self, mins):
         if(self.minute + mins >= 60):
             while(mins >= 60):
@@ -29,15 +46,31 @@ class TimeKeeper():
         else:
             self.minute = self.minute + mins
 
-    #Returns the difference between two TimeKeepers in minutes
-    #   positive if self >, negative if comp >, 0 otherwise
+    # **__cmp__()**
+    # Returns the difference between two TimeKeeper objects in minutes
+    # Args:
+    #   compTime - The TimeKeeper object being compared to
+    # Return:
+    #   The minutes, positive if self >, negative if comp >, 0 otherwise
     def __cmp__(self, compTime):
         return self.minute - compTime.minute + (self.hour - compTime.hour)*60
 
+    # **__str__()**
+    # Returns a string representing the face TimeKeeper's time
+    # Args:
+    #   N/A
+    # Return:
+    #   A string representing the face TimeKeeper's time
     def __str__(self):
         return "%d:%02d" % (self.hour, self.minute)
 
-#Send an email to the relevant user telling them to leave now
+# **sendEmail()**
+# Send an email to the relevant user telling them to leave now
+# Args:
+#   conn - the connection to the database
+#   userId - the Id of the user to be emailed
+# Return:
+#   N/A
 def sendEmail(conn, userId):
     cursor = conn.execute("SELECT name, email, busName, stopName FROM Requests JOIN StopsBusses ON (Requests.busTag = StopsBusses.busTag AND Requests.stopTag = StopsBusses.stopTag) WHERE id = " + str(userId) +";")
     usrInfo = cursor.fetchone()
@@ -59,7 +92,14 @@ def sendEmail(conn, userId):
     server.sendmail(fromaddr, toaddrs, msg)
     server.quit()
 
-#Obtains and processes all relevant requests
+# **getRequests()**
+# Obtains all relevant requests
+# Args:
+#   conn - the connection to the database
+#   currTime - the current time in a TimeKeeper object
+#   timeBuffer - the largest amount of minutes from now that is relevant
+# Return:
+#   A cursor object with the relevant requests
 def getRequests(conn, currTime, timeBuffer):
     currTime.addMins(timeBuffer)
 
@@ -71,6 +111,13 @@ def getRequests(conn, currTime, timeBuffer):
 
     return c
 
+# **createGreedyDict()**
+# Creates a dictionary of all the predictions for a given time
+# Args:
+#   conn - the connection to the database
+#   currTime - the current time in a TimeKeeper object
+# Return:
+#   A dictionary of all of the predictions per stop per bus
 def createGreedyDict(conn, currTime):
     preDict = {}
     busTags = conn.execute("SELECT busTag FROM StopsBusses GROUP BY busTag")
@@ -94,7 +141,15 @@ def createGreedyDict(conn, currTime):
 
     return preDict
 
-#Determines if an alert is required for the given request
+# **processRequest()**
+# Determines if an alert is required for the given request
+# Args:
+#   conn - the connection to the database
+#   preDict - the dictionary of all of the predictions per stop per bus 
+#   currTime - the current time in a TimeKeeper object
+#   request - the data for the given request
+# Return:
+#   A dictionary of all of the predictions per stop per bus
 def processRequest(conn, preDict, currTime, request):
     reqPreList = preDict[request[5]][request[4]]
 
@@ -140,20 +195,28 @@ def main():
 
     #Process requests every minute
     while(True):
+        startTime = time.clock()
+
         #Create a TimeKeeper object of the current time
         now = datetime.datetime.now()
         currTime = TimeKeeper(now.hour, now.minute)
         print("Log Time: %s\n" % str(currTime))
 
+        #Get the relevant requests
         requests = getRequests(conn, currTime, 45)
 
+        #Create the prediction dictionary for the current time
         preDict = createGreedyDict(conn, currTime)
 
+        #Process each request
         for request in requests:
            processRequest(conn, preDict, currTime, request)
-
         print("Success.")
-        time.sleep(60)
+
+        #Wait for the rest of the minute
+        deltaTime = time.clock() - startTime
+        if(deltaTime < 60):
+            time.sleep(60 - deltaTime)
 
     print("Success.")
 

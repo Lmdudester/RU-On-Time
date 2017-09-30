@@ -1,5 +1,11 @@
 import sqlite3, json, requests
 
+# **makeTables()**
+# Drop old tables and create the new ones
+# Args:
+#   conn - the connection to the database
+# Return:
+#   N/A
 def makeTables(conn):
     try:
         conn.execute('''DROP TABLE IF EXISTS StopsBusses''')
@@ -31,6 +37,12 @@ def makeTables(conn):
         conn.close()
         exit()
 
+# **populate()**
+# Populate the StopsBusses table with the relevant bus data for the day
+# Args:
+#   conn - the connection to the database
+# Return:
+#   N/A
 def populate(conn):
     routeResp = requests.get("http://webservices.nextbus.com/service/publicJSONFeed?command=routeList&a=rutgers")
     routeResp.raise_for_status()
@@ -41,17 +53,20 @@ def populate(conn):
         stopResp.raise_for_status()
         stopList = json.loads(stopResp.text)["route"]["stop"]
 
-        #print("\nBus: %s | Tag: %s" % (b["title"], b["tag"]))
         for s in stopList:
-            #print("\t%s | Tag: %s" % (s["title"], s["tag"]))
             conn.execute("INSERT INTO StopsBusses (stopTag, busTag, stopName, busName)" +
                             "VALUES (\'" + s["tag"] + "\', \'" + b["tag"] + "\', \'" + s["title"] + "\', \'" + b["title"] +"\');")
 
     conn.commit()
 
 def main():
+    #Connect to or create the database file
     conn = sqlite3.connect('databases/busSniper.db')
+
+    #Drop old tables and create new ones
     makeTables(conn)
+
+    #Populate the StopsBusses table with the relevant bus data
     populate(conn)
 
     print("Success.")

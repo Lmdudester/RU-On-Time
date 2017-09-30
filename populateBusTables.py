@@ -36,7 +36,7 @@ def populate(conn):
     routeResp.raise_for_status()
     busList = json.loads(routeResp.text)["route"]
 
-    for b in busList[5:-7]:
+    for b in busList[-4:-2]:
         stopResp = requests.get("http://webservices.nextbus.com/service/publicJSONFeed?command=routeConfig&a=rutgers&r=" + b["tag"])
         stopResp.raise_for_status()
         stopList = json.loads(stopResp.text)["route"]["stop"]
@@ -50,7 +50,7 @@ def populate(conn):
     conn.commit()
 
 def main():
-    conn = sqlite3.connect('databases\\busSniper.db')
+    conn = sqlite3.connect('databases/busSniper.db')
     makeTables(conn)
     populate(conn)
 

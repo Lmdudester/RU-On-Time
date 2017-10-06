@@ -1,4 +1,4 @@
-import sqlite3, json, requests
+import sqlite3, json, requests, datetime
 
 # **makeTables()**
 # Drop old tables and create the new ones
@@ -48,7 +48,12 @@ def populate(conn):
     routeResp.raise_for_status()
     busList = json.loads(routeResp.text)["route"]
 
-    for b in busList[-4:-2]:
+    if(datetime.datetime.today().weekday() < 5):
+        busList = busList[5:-7]
+    else:
+        busList = busList[-4:-2]
+
+    for b in busList:
         stopResp = requests.get("http://webservices.nextbus.com/service/publicJSONFeed?command=routeConfig&a=rutgers&r=" + b["tag"])
         stopResp.raise_for_status()
         stopList = json.loads(stopResp.text)["route"]["stop"]

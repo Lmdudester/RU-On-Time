@@ -71,14 +71,21 @@ class TimeKeeper():
 #   userId - the Id of the user to be emailed
 # Return:
 #   N/A
-def sendEmail(conn, userId):
+def sendEmail(conn, userId, late):
     cursor = conn.execute("SELECT name, email, busName, stopName FROM Requests JOIN StopsBusses ON (Requests.busTag = StopsBusses.busTag AND Requests.stopTag = StopsBusses.stopTag) WHERE id = " + str(userId) +";")
     usrInfo = cursor.fetchone()
 
     #Construct Email
     fromaddr = 'BusSniper'
     toaddrs  = usrInfo[1]
-    msg = "\r\n".join(["From: MySniper", "To: " + usrInfo[1], usrInfo[0] + ",\n" + "Leave now to catch the " + usrInfo[2] + " at " + usrInfo[3] + "."])
+    textMsg = ""
+
+    if(late):
+        textMsg = "The only available bus was later than the requested time. "
+
+    textMsg += "Leave now to catch the " + usrInfo[2] + " at " + usrInfo[3] + "."
+
+    msg = "\r\n".join(["From: MySniper", "To: " + usrInfo[1], usrInfo[0] + ",\n" + textMsg])
 
     #Log in
     username = 'temp@website.com'
@@ -145,7 +152,7 @@ def createGreedyDict(conn, currTime):
 # Determines if an alert is required for the given request
 # Args:
 #   conn - the connection to the database
-#   preDict - the dictionary of all of the predictions per stop per bus 
+#   preDict - the dictionary of all of the predictions per stop per bus
 #   currTime - the current time in a TimeKeeper object
 #   request - the data for the given request
 # Return:
@@ -177,8 +184,11 @@ def processRequest(conn, preDict, currTime, request):
         arriveTime.addMins(request[3])
         print("Leave Now\tID: %d - Catch: %s\n" % (request[0], str(arriveTime)))
 
-        #Send email
-        sendEmail(conn, request[0])
+        #Send Email
+        if(currTime.__cmp__(arriveTime) == 0)
+            sendEmail(conn, request[0], False)
+        else:
+            sendEmail(conn, request[0], True)
 
         #Remove from table
         conn.execute("DELETE FROM Requests WHERE id = " + str(request[0]) + ";")

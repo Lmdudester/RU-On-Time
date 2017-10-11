@@ -139,7 +139,17 @@ def createGreedyDict(conn, currTime):
 
             predictions = requests.get("http://webservices.nextbus.com/service/publicJSONFeed?command=predictions&a=rutgers&r=" + btag[0] + "&s=" + stag[0])
             predictions.raise_for_status()
-            preList = json.loads(predictions.text)["predictions"]['direction']['prediction']
+            preList = json.loads(predictions.text)["predictions"]
+
+            if("direction" in preList):
+                preList = preList["direction"]
+            else:
+                continue
+
+            if("prediction" in preList):
+                preList = preList["prediction"]
+            else:
+                continue
 
             for timeDict in preList:
                 temp = TimeKeeper(currTime.hour, currTime.minute)
@@ -164,7 +174,10 @@ def processRequest(conn, preDict, currTime, request):
     reqTime = TimeKeeper(request[1], request[2])
 
     #Soonest prediciton is defaulted to best time
-    suggTime = reqPreList[0]
+    if(len(reqPreList) > 0):
+        suggTime = reqPreList[0]
+    else:
+        print("No Predictions available for Request ID: %d" % request[0])
 
     #While the current time plus the prediction is still before the required time
     #   keep trying to find the latest time
@@ -181,14 +194,14 @@ def processRequest(conn, preDict, currTime, request):
 
     #If its time to leave or the time to leave has passed alert the user
     if(currTime.__cmp__(arriveTime) >= 0):
-        arriveTime.addMins(request[3])
-        print("Leave Now\tID: %d - Catch: %s\n" % (request[0], str(arriveTime)))
-
         #Send Email
-        if(currTime.__cmp__(arriveTime) == 0)
+        if(abs(currTime.__cmp__(arriveTime)) <= 1):
             sendEmail(conn, request[0], False)
         else:
             sendEmail(conn, request[0], True)
+
+        arriveTime.addMins(request[3])
+        print("Leave Now\tID: %d - Catch: %s\n" % (request[0], str(arriveTime)))
 
         #Remove from table
         conn.execute("DELETE FROM Requests WHERE id = " + str(request[0]) + ";")
